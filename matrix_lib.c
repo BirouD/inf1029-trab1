@@ -9,8 +9,6 @@
 #include <immintrin.h>
 #include "matrix_lib.h"
 
-
-
 int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
     if (matrix == NULL || matrix->rows == NULL) {
         return 0;
@@ -36,23 +34,29 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
     return 1;
 }
 
+int matrix_matrix_mult(struct matrix *matrixA, struct matrix *matrixB, struct matrix *matrixC) {
+  if (matrixA->width != matrixB->height || matrixA->height != matrixC->height || matrixB->width != matrixC->width) return 0;
 
-int matrix_matrix_mult(struct matrix *a, struct matrix *b, struct matrix *c) {
-  if (a->width != b->height || c->height != a->height || c->width != b->width) return 0;
-
-  for (int i = 0; i < a->height; i++) {
-    for (int j = 0; j < b->width; j++) {
+  for (unsigned long int i = 0; i < matrixA->height; i++) {
+    for (unsigned long int j = 0; j < matrixB->width; j++) {
       __m256 v_sum = _mm256_setzero_ps();
 
-      for (int k = 0; k < a->width; k += 8) {
-        __m256 v_a = _mm256_loadu_ps(a->rows + i * a->width + k);
-        __m256 v_b = _mm256_loadu_ps(b->rows + k * b->width + j);
+      for (unsigned long int k = 0; k < matrixA->width; k += 8) {
+        __m256 v_a = _mm256_loadu_ps(&matrixA->rows[i * matrixA->width + k]);
+        __m256 v_b = _mm256_loadu_ps(&matrixB->rows[k * matrixB->width + j]);
+      
         v_sum = _mm256_fmadd_ps(v_a, v_b, v_sum);
       }
 
-        _mm256_storeu_ps(c->rows + i * c->width + j, v_sum);
+      v_sum = _mm256_hadd_ps(v_sum, v_sum);
+      v_sum = _mm256_hadd_ps(v_sum, v_sum);
+
+      float result[8];
+      _mm256_storeu_ps(result, v_sum);
+      
+      matrixC->rows[i * matrixB->width + j] = result[0] + result[4];
     }
   }
 
-    return 1;
+  return 1;
 }
