@@ -17,23 +17,24 @@ int scalar_matrix_mult(float scalar_value, struct matrix *matrix) {
     }
 
     unsigned long int total_elements = matrix->height * matrix->width;
-    __m256 v_scalar = _mm256_set1_ps(scalar_value);  
+    __m256 v_scalar = _mm256_set1_ps(scalar_value);
+    float *p = matrix->rows;  
 
-   
     unsigned long int i;
     for (i = 0; i + 7 < total_elements; i += 8) {
-        __m256 v_data = _mm256_loadu_ps(&matrix->rows[i]); 
+        __m256 v_data = _mm256_loadu_ps(p);  
         __m256 v_result = _mm256_mul_ps(v_data, v_scalar); 
-        _mm256_storeu_ps(&matrix->rows[i], v_result);       
+        _mm256_storeu_ps(p, v_result);  
+        p += 8; 
     }
 
     for (; i < total_elements; i++) {
-        matrix->rows[i] *= scalar_value;
+        *p *= scalar_value;  
+        p++;  
     }
 
     return 1;
 }
-
 
 
 int matrix_matrix_mult(struct matrix *a, struct matrix *b, struct matrix *c) {
